@@ -1,0 +1,28 @@
+{
+	"name": "pi-duroxide",
+	"version": "0.1.0",
+	"author": "Mark Hingston",
+	"type": "module",
+	"description": "Durable workflow orchestration for pi using duroxide-node. Generator-based workflows that survive restarts and can call back into pi for LLM turns, tool calls, and message sending.",
+	"scripts": {
+		"clean": "echo 'nothing to clean'",
+		"build": "echo 'nothing to build'",
+		"check": "echo 'nothing to check'",
+		"test": "vitest --run"
+	},
+	"pi": {
+		"extensions": [
+			"./src/index.ts"
+		]
+	},
+	"dependencies": {
+		"duroxide": "^0.1.25"
+	},
+	"devDependencies": {
+		"vitest": "^3.2.4"
+	},
+	"peerDependencies": {
+		"@mariozechner/pi-coding-agent": "*",
+		"typebox": "*"
+	}
+}
