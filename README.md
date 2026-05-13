@@ -18,7 +18,7 @@ pi install npm:pi-duroxide
 ```typescript
 // my-workflow.ts
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { registerWorkflow } from "@mariozechner/pi-duroxide";
+import { registerWorkflow } from "pi-duroxide";
 
 export default function (pi: ExtensionAPI) {
   registerWorkflow("echo", function* (_ctx, input) {
@@ -28,8 +28,8 @@ export default function (pi: ExtensionAPI) {
 ```
 
 ```bash
-# 2. Start pi with both the workflow engine and your workflow file
-pi -e ./packages/pi-duroxide -e ./my-workflow.ts
+# 2. Start pi with your workflow file
+pi -e ./my-workflow.ts
 ```
 
 > **Note:** pi-duroxide provides the runtime engine. Your workflow files are
@@ -122,10 +122,10 @@ the process dies, everything restarts from scratch. With pi-duroxide:
 pi install npm:pi-duroxide
 ```
 
-### From the monorepo (development)
+### From the package directory (development)
 
 ```bash
-pi install ./packages/pi-duroxide
+pi install .
 ```
 
 ### From settings.json
@@ -139,7 +139,7 @@ pi install ./packages/pi-duroxide
 ### From command line
 
 ```bash
-pi -e ./packages/pi-duroxide/src/index.ts
+pi -e ./src/index.ts
 ```
 
 ---
@@ -150,7 +150,7 @@ pi -e ./packages/pi-duroxide/src/index.ts
 
 ```typescript
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { registerWorkflow } from "@mariozechner/pi-duroxide";
+import { registerWorkflow } from "pi-duroxide";
 
 export default function myExtension(pi: ExtensionAPI) {
   registerWorkflow("my-workflow", function* (ctx, input) {
@@ -167,7 +167,7 @@ pauses the workflow and persists its state to SQLite. The runtime replays the
 generator deterministically.
 
 ```typescript
-import type { WorkflowContext } from "@mariozechner/pi-duroxide";
+import type { WorkflowContext } from "pi-duroxide";
 
 // DO: use function* with yield
 registerWorkflow("good", function* (ctx: WorkflowContext, input: { url: string }) {
@@ -440,7 +440,7 @@ Tab-completion suggests registered workflow names.
 
 ```typescript
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { registerWorkflow } from "@mariozechner/pi-duroxide";
+import { registerWorkflow } from "pi-duroxide";
 
 export default function myExtension(pi: ExtensionAPI) {
   registerWorkflow<{ service: string; tag: string }, { status: string; url?: string }>(
@@ -605,7 +605,6 @@ single-user desktop use case.
 ### Setup
 
 ```bash
-cd packages/pi-duroxide
 npm install
 ```
 
