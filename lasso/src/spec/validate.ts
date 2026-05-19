@@ -116,6 +116,35 @@ export function validateHarnessSpec(spec: HarnessSpec): ValidationResult {
           if (rule.checkNodeId && !nodeIds.has(rule.checkNodeId)) {
             errors.push(`Verification rule in node ${node.id} references nonexistent checkNodeId: ${rule.checkNodeId}`);
           }
+          // Check for self-reference
+          if (rule.checkNodeId === node.id) {
+            errors.push(`Verification rule in node ${node.id} cannot reference itself`);
+          }
+        }
+      }
+    }
+
+    // Check for circular verification dependencies
+    const verificationGraph = new Map<string, Set<string>>();
+    for (const node of spec.graph.nodes) {
+      const nodeAny = node as any;
+      if (nodeAny.verificationPolicy?.rules) {
+        const deps = new Set<string>();
+        for (const rule of nodeAny.verificationPolicy.rules) {
+          if (rule.checkNodeId) {
+            deps.add(rule.checkNodeId);
+          }
+        }
+        verificationGraph.set(node.id, deps);
+      }
+    }
+
+    // Detect simple circular dependencies (A -> B -> A)
+    for (const [nodeId, deps] of verificationGraph.entries()) {
+      for (const depId of deps) {
+        const depDeps = verificationGraph.get(depId);
+        if (depDeps && depDeps.has(nodeId)) {
+          errors.push(`Circular verification dependency detected between nodes ${nodeId} and ${depId}`);
         }
       }
     }

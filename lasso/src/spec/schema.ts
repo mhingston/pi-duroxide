@@ -5,11 +5,13 @@
 export const harnessSpecSchema = {
   type: "object",
   required: ["name", "graph"],
+  additionalProperties: false,
   properties: {
     name: { type: "string", minLength: 1 },
     graph: {
       type: "object",
       required: ["entryNodeId", "nodes", "edges"],
+      additionalProperties: false,
       properties: {
         entryNodeId: { type: "string" },
         nodes: {
@@ -19,6 +21,7 @@ export const harnessSpecSchema = {
               {
                 type: "object",
                 required: ["id", "kind", "tool", "args"],
+                additionalProperties: false,
                 properties: {
                   id: { type: "string" },
                   kind: { const: "tool" },
@@ -35,6 +38,7 @@ export const harnessSpecSchema = {
               {
                 type: "object",
                 required: ["id", "kind", "provider", "model", "prompt"],
+                additionalProperties: false,
                 properties: {
                   id: { type: "string" },
                   kind: { const: "llm" },
@@ -53,6 +57,7 @@ export const harnessSpecSchema = {
               {
                 type: "object",
                 required: ["id", "kind", "prompt", "interactionType"],
+                additionalProperties: false,
                 properties: {
                   id: { type: "string" },
                   kind: { const: "human" },
@@ -68,6 +73,7 @@ export const harnessSpecSchema = {
               {
                 type: "object",
                 required: ["id", "kind", "condition", "thenNodeId", "elseNodeId"],
+                additionalProperties: false,
                 properties: {
                   id: { type: "string" },
                   kind: { const: "condition" },
@@ -82,6 +88,7 @@ export const harnessSpecSchema = {
               {
                 type: "object",
                 required: ["id", "kind", "waitFor"],
+                additionalProperties: false,
                 properties: {
                   id: { type: "string" },
                   kind: { const: "merge" },
@@ -95,6 +102,7 @@ export const harnessSpecSchema = {
               {
                 type: "object",
                 required: ["id", "kind", "specRef"],
+                additionalProperties: false,
                 properties: {
                   id: { type: "string" },
                   kind: { const: "subworkflow" },
@@ -114,10 +122,10 @@ export const harnessSpecSchema = {
           items: {
             type: "object",
             required: ["from", "to"],
+            additionalProperties: false,
             properties: {
               from: { type: "string" },
-              to: { type: "string" },
-              condition: { type: "string" }
+              to: { type: "string" }
             }
           }
         }
@@ -130,6 +138,7 @@ export const harnessSpecSchema = {
   $defs: {
     executionPolicy: {
       type: "object",
+      additionalProperties: false,
       properties: {
         timeout: { type: "number" },
         maxMemory: { type: "number" },
@@ -139,6 +148,7 @@ export const harnessSpecSchema = {
           items: {
             type: "object",
             required: ["pattern", "category", "retry"],
+            additionalProperties: false,
             properties: {
               pattern: { type: "string" },
               category: { enum: ["transient", "permanent", "resource", "configuration"] },
@@ -151,6 +161,7 @@ export const harnessSpecSchema = {
     retryPolicy: {
       type: "object",
       required: ["maxAttempts", "backoff"],
+      additionalProperties: false,
       properties: {
         maxAttempts: { type: "number", minimum: 1 },
         backoff: { enum: ["constant", "linear", "exponential"] },
@@ -165,12 +176,14 @@ export const harnessSpecSchema = {
     verificationPolicy: {
       type: "object",
       required: ["rules"],
+      additionalProperties: false,
       properties: {
         rules: {
           type: "array",
           items: {
             type: "object",
             required: ["checkNodeId", "onFail"],
+            additionalProperties: false,
             properties: {
               checkNodeId: { type: "string" },
               onFail: { enum: ["block", "warn", "retry"] },
@@ -182,6 +195,7 @@ export const harnessSpecSchema = {
     },
     humanPolicy: {
       type: "object",
+      additionalProperties: false,
       properties: {
         defaultTimeout: { type: "number" },
         allowAsync: { type: "boolean" },
@@ -193,6 +207,7 @@ export const harnessSpecSchema = {
     },
     observabilityPolicy: {
       type: "object",
+      additionalProperties: false,
       properties: {
         tracing: { type: "boolean" },
         metrics: { type: "boolean" },

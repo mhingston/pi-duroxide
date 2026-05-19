@@ -46,9 +46,6 @@ export interface TaskEdge {
 
   /** Target node ID */
   to: string;
-
-  /** Optional condition expression for conditional edges */
-  condition?: string;
 }
 
 // ============================================================================

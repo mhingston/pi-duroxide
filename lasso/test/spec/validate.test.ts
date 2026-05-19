@@ -208,4 +208,147 @@ describe("validateHarnessSpec", () => {
       expect(result.errors.some(e => e.includes("nonexistent-check") || e.includes("verification"))).toBe(true);
     }
   });
+
+  // Issue 1: Reject edges with condition property
+  it("rejects edges with condition property", () => {
+    const spec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "start",
+        nodes: [
+          {
+            id: "start",
+            kind: "tool",
+            tool: "echo",
+            args: ["hello"]
+          },
+          {
+            id: "next",
+            kind: "tool",
+            tool: "echo",
+            args: ["world"]
+          }
+        ],
+        edges: [
+          {
+            from: "start",
+            to: "next",
+            condition: "some.expr"
+          }
+        ]
+      }
+    } as any;
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("additional properties") && e.includes("edges"))).toBe(true);
+    }
+  });
+
+  // Issue 2: Reject nodes with arbitrary extra properties
+  it("rejects nodes with unsupported properties", () => {
+    const spec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "start",
+        nodes: [
+          {
+            id: "start",
+            kind: "tool",
+            tool: "echo",
+            args: ["hello"],
+            unsupportedField: "should be rejected"
+          }
+        ],
+        edges: []
+      }
+    } as any;
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("additional properties"))).toBe(true);
+    }
+  });
+
+  // Issue 3: Reject verification self-reference
+  it("rejects verification rule that references itself", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "start",
+        nodes: [
+          {
+            id: "start",
+            kind: "tool",
+            tool: "echo",
+            args: ["hello"],
+            verificationPolicy: {
+              rules: [
+                {
+                  checkNodeId: "start",
+                  onFail: "block"
+                }
+              ]
+            }
+          }
+        ],
+        edges: []
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("cannot reference itself"))).toBe(true);
+    }
+  });
+
+  // Issue 3: Reject circular verification dependencies
+  it("rejects circular verification dependencies", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "nodeA",
+        nodes: [
+          {
+            id: "nodeA",
+            kind: "tool",
+            tool: "echo",
+            args: ["A"],
+            verificationPolicy: {
+              rules: [
+                {
+                  checkNodeId: "nodeB",
+                  onFail: "block"
+                }
+              ]
+            }
+          },
+          {
+            id: "nodeB",
+            kind: "tool",
+            tool: "echo",
+            args: ["B"],
+            verificationPolicy: {
+              rules: [
+                {
+                  checkNodeId: "nodeA",
+                  onFail: "block"
+                }
+              ]
+            }
+          }
+        ],
+        edges: []
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("Circular verification dependency"))).toBe(true);
+    }
+  });
 });
