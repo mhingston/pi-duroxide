@@ -1,6 +1,10 @@
 import { execFileSync } from "node:child_process";
 import type { CompiledHarnessResult, CompiledHarnessWorkflow } from "../../src/compiler/compile.js";
-import type { LocalPrBundle } from "../../src/reference/types.js";
+
+/** Minimal input shape required by the test runner — only `repoPath` is needed. */
+export interface WorkflowInput {
+  repoPath: string;
+}
 
 export interface RunCompiledWorkflowOptions {
   llmResult?: unknown;
@@ -17,16 +21,16 @@ type YieldItem =
 
 export async function runCompiledWorkflow(
   compiled: CompiledHarnessWorkflow,
-  bundle: LocalPrBundle,
+  input: WorkflowInput,
   options: RunCompiledWorkflowOptions,
 ): Promise<CompiledHarnessResult> {
   const context = createRuntimeContext();
-  const iterator = compiled.workflows[0].generator(context as any, bundle);
+  const iterator = compiled.workflows[0].generator(context as any, input);
 
   let next = iterator.next();
   while (!next.done) {
     try {
-      const resolved = executeYieldItem(next.value as YieldItem, bundle, options);
+      const resolved = executeYieldItem(next.value as YieldItem, input, options);
       next = iterator.next(resolved);
     } catch (error) {
       if (!iterator.throw) {
@@ -87,12 +91,12 @@ function createRuntimeContext() {
 
 function executeYieldItem(
   item: YieldItem,
-  bundle: LocalPrBundle,
+  input: WorkflowInput,
   options: RunCompiledWorkflowOptions,
 ): unknown {
   switch (item.kind) {
     case "tool-call":
-      return executeToolCall(item.name, item.args.command, bundle.repoPath);
+      return executeToolCall(item.name, item.args.command, input.repoPath);
     case "llm-call":
       return options.llmResult ?? { approved: true };
     case "wait-for-event":
@@ -103,7 +107,7 @@ function executeYieldItem(
         input: item.input,
       };
     case "all":
-      return item.tasks.map(task => executeYieldItem(task, bundle, options));
+      return item.tasks.map(task => executeYieldItem(task, input, options));
     case "timer":
       return { delayMs: item.delayMs };
   }

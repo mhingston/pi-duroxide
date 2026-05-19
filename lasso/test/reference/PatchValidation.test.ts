@@ -1,6 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { buildPatchValidationHarnessSpec } from "../../src/reference/patch-validation.js";
+import { compileHarnessSpec } from "../../src/compiler/compile.js";
 import { validateHarnessSpec } from "../../src/spec/validate.js";
+import { createPatchValidationFixture } from "../helpers/createPatchValidationFixture.js";
+import { runCompiledWorkflow } from "../helpers/runCompiledWorkflow.js";
 import type { LocalPatchValidationBundle } from "../../src/reference/types.js";
 
 const ALWAYS_PRESENT_TERMINAL_IDS = ["validated-fix", "not-reproduced", "apply-failed", "candidate-failed"];
@@ -267,5 +270,57 @@ describe("buildPatchValidationHarnessSpec", () => {
     expect(() => buildPatchValidationHarnessSpec(bundle)).toThrow(
       "Patch validation requires at least one verification command",
     );
+  });
+});
+
+describe("buildPatchValidationHarnessSpec compiled workflow", () => {
+  const cleanups: Array<() => void> = [];
+
+  afterEach(() => {
+    while (cleanups.length > 0) {
+      cleanups.pop()?.();
+    }
+  });
+
+  it("runs to validated-fix when a branch candidate fixes the bug", async () => {
+    const fixture = createPatchValidationFixture();
+    cleanups.push(fixture.cleanup);
+
+    const spec = buildPatchValidationHarnessSpec(fixture.bundle);
+    const compiled = compileHarnessSpec(spec);
+    const result = await runCompiledWorkflow(compiled, fixture.bundle, {});
+
+    expect(result.status).toBe("completed");
+    expect(result.terminalNodeId).toBe("validated-fix");
+
+    const baselineOutput = result.outputs["run-baseline"] as { reproduced: boolean };
+    expect(baselineOutput.reproduced).toBe(true);
+
+    const candidateOutput = result.outputs["run-candidate-reproduce"] as { reproduced: boolean };
+    expect(candidateOutput.reproduced).toBe(false);
+
+    const verificationOutput = result.outputs["run-verification"] as { passed: boolean };
+    expect(verificationOutput.passed).toBe(true);
+  });
+
+  it("runs to validated-fix when a patch-file candidate fixes the bug", async () => {
+    const fixture = createPatchValidationFixture({ candidateKind: "patchFile" });
+    cleanups.push(fixture.cleanup);
+
+    const spec = buildPatchValidationHarnessSpec(fixture.bundle);
+    const compiled = compileHarnessSpec(spec);
+    const result = await runCompiledWorkflow(compiled, fixture.bundle, {});
+
+    expect(result.status).toBe("completed");
+    expect(result.terminalNodeId).toBe("validated-fix");
+
+    const baselineOutput = result.outputs["run-baseline"] as { reproduced: boolean };
+    expect(baselineOutput.reproduced).toBe(true);
+
+    const candidateOutput = result.outputs["run-candidate-reproduce"] as { reproduced: boolean };
+    expect(candidateOutput.reproduced).toBe(false);
+
+    const verificationOutput = result.outputs["run-verification"] as { passed: boolean };
+    expect(verificationOutput.passed).toBe(true);
   });
 });
