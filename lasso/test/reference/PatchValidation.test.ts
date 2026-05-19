@@ -232,4 +232,24 @@ describe("buildPatchValidationHarnessSpec", () => {
       "Patch validation requires at least one reproduce command",
     );
   });
+
+  it("human approval prompt explicitly references the prior summarise step output", () => {
+    const bundle: LocalPatchValidationBundle = {
+      repoPath: "/tmp/repo",
+      baselineRef: "HEAD",
+      candidateSource: { kind: "branch", value: "fix/bug-123" },
+      reproduceCommands: ["npm test"],
+      verificationCommands: ["npm test"],
+      reviewInstructions: "Approve only if regression-free.",
+      approvalRequired: true,
+    };
+
+    const spec = buildPatchValidationHarnessSpec(bundle);
+    const humanNode = spec.graph.nodes.find(n => n.id === "human-approve");
+    expect(humanNode).toBeDefined();
+    expect(humanNode!.kind).toBe("human");
+    const prompt = (humanNode as any).prompt as string;
+    expect(prompt).toMatch(/summarise/);
+    expect(prompt).toMatch(/summarise\.summary/);
+  });
 });

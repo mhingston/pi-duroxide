@@ -101,7 +101,7 @@ export function buildPatchValidationHarnessSpec(bundle: LocalPatchValidationBund
               {
                 id: ids.humanApprove,
                 kind: "human" as const,
-                prompt: `Review the patch-validation summary and approve or reject the candidate fix.\n\nInstructions: ${bundle.reviewInstructions}`,
+                prompt: `Review the patch-validation summary produced by the '${ids.summarise}' step (available in workflow state as '${ids.summarise}.summary') and approve or reject the candidate fix.\n\nInstructions: ${bundle.reviewInstructions}`,
                 interactionType: "approval" as const,
               },
               {
