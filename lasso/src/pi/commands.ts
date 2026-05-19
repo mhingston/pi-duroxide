@@ -2,8 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { RegisteredCommand, SourceInfo } from "@mariozechner/pi-coding-agent";
 import type { WorkflowRegistry } from "../../../src/workflow-registry.js";
 import { compileHarnessSpec, type CompiledHarnessWorkflow } from "../compiler/compile.js";
-import { buildPrReviewMergeHarnessSpec } from "../reference/pr-review-merge.js";
-import type { LocalPrBundle } from "../reference/types.js";
+import { buildReferenceHarnessSpec, parseWorkflowRequest, type ReferenceWorkflowRequest } from "../reference/catalog.js";
 
 const compiledHarnesses = new Map<string, CompiledHarnessWorkflow>();
 let lastCompiledHarnessName: string | undefined;
@@ -15,8 +14,8 @@ export function createLassoCommands(registry: WorkflowRegistry): RegisteredComma
     description: "Compile the simulated/local PR review + merge reference workflow from a LocalPrBundle JSON payload.",
     handler: async (args, ctx) => {
       try {
-        const bundle = parseBundleArgs(args);
-        const compiled = compileReferenceHarness(bundle);
+        const request = parseRequestArgs(args);
+        const compiled = compileReferenceHarness(request);
         ctx.ui.notify(
           [
             `Compiled \`${compiled.name}\``,
@@ -38,8 +37,8 @@ export function createLassoCommands(registry: WorkflowRegistry): RegisteredComma
     description: "Compile, register, and start the simulated/local PR review + merge workflow from a LocalPrBundle JSON payload.",
     handler: async (args, ctx) => {
       try {
-        const bundle = parseBundleArgs(args);
-        const compiled = compileReferenceHarness(bundle);
+        const request = parseRequestArgs(args);
+        const compiled = compileReferenceHarness(request);
         compiled.register();
 
         const runtime = registry.getRuntime();
@@ -124,32 +123,16 @@ export function clearCompiledHarnesses(): void {
   lastCompiledHarnessName = undefined;
 }
 
-export function compileReferenceHarness(bundle: LocalPrBundle): CompiledHarnessWorkflow {
-  const spec = buildPrReviewMergeHarnessSpec(bundle);
+export function compileReferenceHarness(request: ReferenceWorkflowRequest): CompiledHarnessWorkflow {
+  const spec = buildReferenceHarnessSpec(request);
   const compiled = compileHarnessSpec(spec);
   compiledHarnesses.set(compiled.name, compiled);
   lastCompiledHarnessName = compiled.name;
   return compiled;
 }
 
-function parseBundleArgs(args: string): LocalPrBundle {
-  const trimmed = args.trim();
-  if (!trimmed) {
-    throw new Error("Usage: /lasso:<compile|run> <LocalPrBundle JSON>");
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(trimmed);
-  } catch {
-    throw new Error("Invalid LocalPrBundle JSON");
-  }
-
-  if (!isLocalPrBundle(parsed)) {
-    throw new Error("Invalid LocalPrBundle shape");
-  }
-
-  return parsed;
+function parseRequestArgs(args: string): ReferenceWorkflowRequest {
+  return parseWorkflowRequest(args);
 }
 
 function extSourceInfo(): SourceInfo {
@@ -162,20 +145,4 @@ function formatCommandError(error: unknown): string {
   }
 
   return String(error);
-}
-
-function isLocalPrBundle(value: unknown): value is LocalPrBundle {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const record = value as Record<string, unknown>;
-  return (
-    typeof record.repoPath === "string"
-    && typeof record.sourceBranch === "string"
-    && typeof record.targetBranch === "string"
-    && typeof record.reviewInstructions === "string"
-    && Array.isArray(record.verificationCommands)
-    && record.verificationCommands.every(command => typeof command === "string")
-  );
 }
