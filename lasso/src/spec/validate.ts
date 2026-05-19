@@ -124,7 +124,7 @@ export function validateHarnessSpec(spec: HarnessSpec): ValidationResult {
       }
     }
 
-    // Check for circular verification dependencies
+    // Check for circular verification dependencies using DFS cycle detection
     const verificationGraph = new Map<string, Set<string>>();
     for (const node of spec.graph.nodes) {
       const nodeAny = node as any;
@@ -139,12 +139,37 @@ export function validateHarnessSpec(spec: HarnessSpec): ValidationResult {
       }
     }
 
-    // Detect simple circular dependencies (A -> B -> A)
-    for (const [nodeId, deps] of verificationGraph.entries()) {
-      for (const depId of deps) {
-        const depDeps = verificationGraph.get(depId);
-        if (depDeps && depDeps.has(nodeId)) {
-          errors.push(`Circular verification dependency detected between nodes ${nodeId} and ${depId}`);
+    // Detect cycles of any length using DFS
+    const detectCycle = (start: string, visited: Set<string>, recStack: Set<string>, path: string[]): string[] | null => {
+      visited.add(start);
+      recStack.add(start);
+      path.push(start);
+
+      const deps = verificationGraph.get(start);
+      if (deps) {
+        for (const dep of deps) {
+          if (!visited.has(dep)) {
+            const cycle = detectCycle(dep, visited, recStack, [...path]);
+            if (cycle) return cycle;
+          } else if (recStack.has(dep)) {
+            // Found a cycle
+            const cycleStart = path.indexOf(dep);
+            return [...path.slice(cycleStart), dep];
+          }
+        }
+      }
+
+      recStack.delete(start);
+      return null;
+    };
+
+    const visited = new Set<string>();
+    for (const nodeId of verificationGraph.keys()) {
+      if (!visited.has(nodeId)) {
+        const cycle = detectCycle(nodeId, visited, new Set(), []);
+        if (cycle) {
+          errors.push(`Circular verification dependency detected: ${cycle.join(" -> ")}`);
+          break; // Report first cycle found
         }
       }
     }

@@ -351,4 +351,296 @@ describe("validateHarnessSpec", () => {
       expect(result.errors.some(e => e.includes("Circular verification dependency"))).toBe(true);
     }
   });
+
+  // Issue 1: Reject 3-node verification cycle
+  it("rejects 3-node verification cycle", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "nodeA",
+        nodes: [
+          {
+            id: "nodeA",
+            kind: "tool",
+            tool: "echo",
+            args: ["A"],
+            verificationPolicy: {
+              rules: [
+                {
+                  checkNodeId: "nodeB",
+                  onFail: "block"
+                }
+              ]
+            }
+          },
+          {
+            id: "nodeB",
+            kind: "tool",
+            tool: "echo",
+            args: ["B"],
+            verificationPolicy: {
+              rules: [
+                {
+                  checkNodeId: "nodeC",
+                  onFail: "block"
+                }
+              ]
+            }
+          },
+          {
+            id: "nodeC",
+            kind: "tool",
+            tool: "echo",
+            args: ["C"],
+            verificationPolicy: {
+              rules: [
+                {
+                  checkNodeId: "nodeA",
+                  onFail: "block"
+                }
+              ]
+            }
+          }
+        ],
+        edges: []
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("Circular verification dependency"))).toBe(true);
+    }
+  });
+
+  // Issue 2: Reject empty string identifiers
+  it("rejects empty node id", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "start",
+        nodes: [
+          {
+            id: "",
+            kind: "tool",
+            tool: "echo",
+            args: ["hello"]
+          }
+        ],
+        edges: []
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("fewer than 1 characters"))).toBe(true);
+    }
+  });
+
+  it("rejects empty entryNodeId", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "",
+        nodes: [
+          {
+            id: "start",
+            kind: "tool",
+            tool: "echo",
+            args: ["hello"]
+          }
+        ],
+        edges: []
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("fewer than 1 characters"))).toBe(true);
+    }
+  });
+
+  it("rejects empty edge from/to", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "start",
+        nodes: [
+          {
+            id: "start",
+            kind: "tool",
+            tool: "echo",
+            args: ["hello"]
+          },
+          {
+            id: "next",
+            kind: "tool",
+            tool: "echo",
+            args: ["world"]
+          }
+        ],
+        edges: [
+          {
+            from: "",
+            to: "next"
+          }
+        ]
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("fewer than 1 characters"))).toBe(true);
+    }
+  });
+
+  it("rejects empty tool name", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "start",
+        nodes: [
+          {
+            id: "start",
+            kind: "tool",
+            tool: "",
+            args: ["hello"]
+          }
+        ],
+        edges: []
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("fewer than 1 characters"))).toBe(true);
+    }
+  });
+
+  it("rejects empty LLM provider/model/prompt", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "start",
+        nodes: [
+          {
+            id: "start",
+            kind: "llm",
+            provider: "",
+            model: "gpt-4",
+            prompt: "test"
+          }
+        ],
+        edges: []
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("fewer than 1 characters"))).toBe(true);
+    }
+  });
+
+  it("rejects empty condition fields", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "start",
+        nodes: [
+          {
+            id: "start",
+            kind: "condition",
+            condition: "",
+            thenNodeId: "then",
+            elseNodeId: "else"
+          },
+          {
+            id: "then",
+            kind: "tool",
+            tool: "echo",
+            args: ["then"]
+          },
+          {
+            id: "else",
+            kind: "tool",
+            tool: "echo",
+            args: ["else"]
+          }
+        ],
+        edges: []
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("fewer than 1 characters"))).toBe(true);
+    }
+  });
+
+  it("rejects empty checkNodeId in verification", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "start",
+        nodes: [
+          {
+            id: "start",
+            kind: "tool",
+            tool: "echo",
+            args: ["hello"],
+            verificationPolicy: {
+              rules: [
+                {
+                  checkNodeId: "",
+                  onFail: "block"
+                }
+              ]
+            }
+          }
+        ],
+        edges: []
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("fewer than 1 characters"))).toBe(true);
+    }
+  });
+
+  // Issue 3: Reject non-string env values
+  it("rejects non-string env values", () => {
+    const spec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "start",
+        nodes: [
+          {
+            id: "start",
+            kind: "tool",
+            tool: "echo",
+            args: ["hello"],
+            env: {
+              VAR1: "string-value",
+              VAR2: 123
+            }
+          }
+        ],
+        edges: []
+      }
+    } as any;
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("must be string") || e.includes("type"))).toBe(true);
+    }
+  });
 });
