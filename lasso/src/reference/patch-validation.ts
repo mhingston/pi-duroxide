@@ -18,6 +18,10 @@ export function buildPatchValidationHarnessSpec(bundle: LocalPatchValidationBund
     throw new Error("Patch validation requires at least one reproduce command");
   }
 
+  if (bundle.verificationCommands.length === 0) {
+    throw new Error("Patch validation requires at least one verification command");
+  }
+
   const ids = patchValidationNodeIds;
 
   const afterVerification = bundle.approvalRequired ? ids.summarise : ids.validatedFix;

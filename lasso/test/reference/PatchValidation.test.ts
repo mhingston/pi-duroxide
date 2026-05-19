@@ -252,4 +252,20 @@ describe("buildPatchValidationHarnessSpec", () => {
     expect(prompt).toMatch(/summarise/);
     expect(prompt).toMatch(/summarise\.summary/);
   });
+
+  it("throws when verificationCommands is empty", () => {
+    const bundle: LocalPatchValidationBundle = {
+      repoPath: "/tmp/repo",
+      baselineRef: "HEAD",
+      candidateSource: { kind: "branch", value: "fix/bug-123" },
+      reproduceCommands: ["npm test"],
+      verificationCommands: [],
+      reviewInstructions: "Approve.",
+      approvalRequired: false,
+    };
+
+    expect(() => buildPatchValidationHarnessSpec(bundle)).toThrow(
+      "Patch validation requires at least one verification command",
+    );
+  });
 });
