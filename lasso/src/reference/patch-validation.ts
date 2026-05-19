@@ -14,6 +14,10 @@ import {
 import type { LocalPatchValidationBundle } from "./types.js";
 
 export function buildPatchValidationHarnessSpec(bundle: LocalPatchValidationBundle): HarnessSpec {
+  if (bundle.reproduceCommands.length === 0) {
+    throw new Error("Patch validation requires at least one reproduce command");
+  }
+
   const ids = patchValidationNodeIds;
 
   const afterVerification = bundle.approvalRequired ? ids.summarise : ids.validatedFix;

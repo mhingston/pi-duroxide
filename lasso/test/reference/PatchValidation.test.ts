@@ -216,4 +216,20 @@ describe("buildPatchValidationHarnessSpec", () => {
     expect(prompt).toMatch(/summary/i);
     expect(prompt).not.toMatch(/\bapproved\b/);
   });
+
+  it("throws when reproduceCommands is empty", () => {
+    const bundle: LocalPatchValidationBundle = {
+      repoPath: "/tmp/repo",
+      baselineRef: "HEAD",
+      candidateSource: { kind: "branch", value: "fix/bug-123" },
+      reproduceCommands: [],
+      verificationCommands: ["npm test"],
+      reviewInstructions: "Approve.",
+      approvalRequired: false,
+    };
+
+    expect(() => buildPatchValidationHarnessSpec(bundle)).toThrow(
+      "Patch validation requires at least one reproduce command",
+    );
+  });
 });
