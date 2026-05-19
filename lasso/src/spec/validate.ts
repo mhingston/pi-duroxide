@@ -42,11 +42,6 @@ export function validateHarnessSpec(spec: HarnessSpec): ValidationResult {
     }
 
     // Validate edge targets exist
-    const referencedNodes = new Set<string>();
-    if (spec.graph.entryNodeId) {
-      referencedNodes.add(spec.graph.entryNodeId);
-    }
-
     for (const edge of spec.graph.edges) {
       if (edge.from && !nodeIds.has(edge.from)) {
         errors.push(`Edge references nonexistent source node: ${edge.from}`);
@@ -54,8 +49,6 @@ export function validateHarnessSpec(spec: HarnessSpec): ValidationResult {
       if (edge.to && !nodeIds.has(edge.to)) {
         errors.push(`Edge references nonexistent target node: ${edge.to}`);
       }
-      if (edge.from) referencedNodes.add(edge.from);
-      if (edge.to) referencedNodes.add(edge.to);
     }
 
     // Check for condition node references
@@ -66,13 +59,11 @@ export function validateHarnessSpec(spec: HarnessSpec): ValidationResult {
           if (!nodeIds.has(condNode.thenNodeId)) {
             errors.push(`Condition node ${node.id} references nonexistent thenNodeId: ${condNode.thenNodeId}`);
           }
-          referencedNodes.add(condNode.thenNodeId);
         }
         if (condNode.elseNodeId) {
           if (!nodeIds.has(condNode.elseNodeId)) {
             errors.push(`Condition node ${node.id} references nonexistent elseNodeId: ${condNode.elseNodeId}`);
           }
-          referencedNodes.add(condNode.elseNodeId);
         }
       }
     }
@@ -82,20 +73,90 @@ export function validateHarnessSpec(spec: HarnessSpec): ValidationResult {
       if (node.kind === "merge") {
         const mergeNode = node as any;
         if (mergeNode.waitFor) {
+          // Issue 3: Validate waitFor is not empty
+          if (mergeNode.waitFor.length === 0) {
+            errors.push(`Merge node ${node.id} has empty waitFor array`);
+          }
           for (const waitNodeId of mergeNode.waitFor) {
             if (!nodeIds.has(waitNodeId)) {
               errors.push(`Merge node ${node.id} references nonexistent waitFor node: ${waitNodeId}`);
             }
-            referencedNodes.add(waitNodeId);
           }
         }
       }
     }
 
-    // Check for unreachable nodes
-    for (const nodeId of nodeIds) {
-      if (!referencedNodes.has(nodeId)) {
-        errors.push(`Unreachable node: ${nodeId}`);
+    // Issue 2: Validate choice interactions have options
+    for (const node of spec.graph.nodes) {
+      if (node.kind === "human") {
+        const humanNode = node as any;
+        if (humanNode.interactionType === "choice" && (!humanNode.options || humanNode.options.length === 0)) {
+          errors.push(`Human node ${node.id} has interactionType "choice" but missing or empty options`);
+        }
+      }
+    }
+
+    // Issue 1: Proper reachability validation using BFS from entryNodeId
+    const reachableNodes = new Set<string>();
+    if (spec.graph.entryNodeId) {
+      const queue: string[] = [spec.graph.entryNodeId];
+      reachableNodes.add(spec.graph.entryNodeId);
+
+      // Build adjacency map for edges
+      const edgeMap = new Map<string, string[]>();
+      for (const edge of spec.graph.edges) {
+        if (edge.from && edge.to) {
+          if (!edgeMap.has(edge.from)) {
+            edgeMap.set(edge.from, []);
+          }
+          edgeMap.get(edge.from)!.push(edge.to);
+        }
+      }
+
+      // Build condition node map
+      const conditionMap = new Map<string, { thenNodeId: string; elseNodeId: string }>();
+      for (const node of spec.graph.nodes) {
+        if (node.kind === "condition") {
+          const condNode = node as any;
+          conditionMap.set(node.id, {
+            thenNodeId: condNode.thenNodeId,
+            elseNodeId: condNode.elseNodeId
+          });
+        }
+      }
+
+      // BFS traversal
+      while (queue.length > 0) {
+        const current = queue.shift()!;
+
+        // Follow regular edges
+        const targets = edgeMap.get(current) || [];
+        for (const target of targets) {
+          if (!reachableNodes.has(target)) {
+            reachableNodes.add(target);
+            queue.push(target);
+          }
+        }
+
+        // Follow condition branches
+        const condBranches = conditionMap.get(current);
+        if (condBranches) {
+          if (condBranches.thenNodeId && !reachableNodes.has(condBranches.thenNodeId)) {
+            reachableNodes.add(condBranches.thenNodeId);
+            queue.push(condBranches.thenNodeId);
+          }
+          if (condBranches.elseNodeId && !reachableNodes.has(condBranches.elseNodeId)) {
+            reachableNodes.add(condBranches.elseNodeId);
+            queue.push(condBranches.elseNodeId);
+          }
+        }
+      }
+
+      // Check for unreachable nodes
+      for (const nodeId of nodeIds) {
+        if (!reachableNodes.has(nodeId)) {
+          errors.push(`Unreachable node: ${nodeId}`);
+        }
       }
     }
 

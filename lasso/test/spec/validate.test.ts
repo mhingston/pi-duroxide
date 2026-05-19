@@ -643,4 +643,120 @@ describe("validateHarnessSpec", () => {
       expect(result.errors.some(e => e.includes("must be string") || e.includes("type"))).toBe(true);
     }
   });
+
+  // Issue 1: Reject orphan subgraph
+  it("rejects orphan subgraph disconnected from entry", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "start",
+        nodes: [
+          {
+            id: "start",
+            kind: "tool",
+            tool: "echo",
+            args: ["connected"]
+          },
+          {
+            id: "orphan",
+            kind: "tool",
+            tool: "echo",
+            args: ["orphan1"]
+          },
+          {
+            id: "orphan2",
+            kind: "tool",
+            tool: "echo",
+            args: ["orphan2"]
+          }
+        ],
+        edges: [
+          {
+            from: "orphan",
+            to: "orphan2"
+          }
+        ]
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("Unreachable") && (e.includes("orphan") || e.includes("orphan2")))).toBe(true);
+    }
+  });
+
+  // Issue 2: Reject choice interaction without options
+  it("rejects choice interaction without options", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "ask",
+        nodes: [
+          {
+            id: "ask",
+            kind: "human",
+            prompt: "Choose an option",
+            interactionType: "choice"
+          }
+        ],
+        edges: []
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("choice") && e.includes("options"))).toBe(true);
+    }
+  });
+
+  it("rejects choice interaction with empty options", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "ask",
+        nodes: [
+          {
+            id: "ask",
+            kind: "human",
+            prompt: "Choose an option",
+            interactionType: "choice",
+            options: []
+          }
+        ],
+        edges: []
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("choice") && e.includes("options"))).toBe(true);
+    }
+  });
+
+  // Issue 3: Reject empty waitFor array
+  it("rejects merge node with empty waitFor", () => {
+    const spec: HarnessSpec = {
+      name: "test-workflow",
+      graph: {
+        entryNodeId: "merge",
+        nodes: [
+          {
+            id: "merge",
+            kind: "merge",
+            waitFor: []
+          }
+        ],
+        edges: []
+      }
+    };
+
+    const result = validateHarnessSpec(spec);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      expect(result.errors.some(e => e.includes("waitFor") || e.includes("minItems"))).toBe(true);
+    }
+  });
 });

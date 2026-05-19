@@ -95,7 +95,7 @@ export const harnessSpecSchema = {
                 properties: {
                   id: { type: "string", minLength: 1 },
                   kind: { const: "merge" },
-                  waitFor: { type: "array", items: { type: "string", minLength: 1 } },
+                  waitFor: { type: "array", items: { type: "string", minLength: 1 }, minItems: 1 },
                   strategy: { enum: ["all", "any", "majority"] },
                   label: { type: "string" },
                   executionPolicy: { $ref: "#/$defs/executionPolicy" },
