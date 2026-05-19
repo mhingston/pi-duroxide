@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import workflowExtension, { getWorkflowRegistry } from "../../../src/index.js";
+import workflowExtension, { getWorkflowRegistry, type WorkflowRegistry } from "pi-duroxide";
 import { createLassoCommands } from "./commands.js";
 
 export default async function lassoExtension(pi: ExtensionAPI) {

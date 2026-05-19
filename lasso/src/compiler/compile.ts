@@ -1,6 +1,5 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { registerWorkflow } from "../../../src/index.js";
-import type { RegisteredWorkflow, WorkflowContext, WorkflowOptions, YieldItem } from "../../../src/types.js";
+import { registerWorkflow, type RegisteredWorkflow, type WorkflowContext, type WorkflowOptions, type YieldItem } from "pi-duroxide";
 import type { CirMergeNode, CirNode, CirTransition, CirWorkflow } from "../cir/types.js";
 import { lowerHarnessSpecToCir } from "../cir/lower.js";
 import { validateCirWorkflow } from "../cir/validate.js";

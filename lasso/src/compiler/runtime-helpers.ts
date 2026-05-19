@@ -1,5 +1,5 @@
 import type { CirFailureRoutingHint, CirNode, CirVerificationHook } from "../cir/types.js";
-import type { WorkflowContext, YieldItem } from "../../../src/types.js";
+import type { WorkflowContext, YieldItem } from "pi-duroxide";
 
 export type TracePhase =
   | "enter"

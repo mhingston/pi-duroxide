@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { RegisteredCommand, SourceInfo } from "@mariozechner/pi-coding-agent";
-import type { WorkflowRegistry } from "../../../src/workflow-registry.js";
+import { type WorkflowRegistry } from "pi-duroxide";
 import { compileHarnessSpec, type CompiledHarnessWorkflow } from "../compiler/compile.js";
 import { buildReferenceHarnessSpec, parseWorkflowRequest, type ReferenceWorkflowRequest } from "../reference/catalog.js";
 

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../../src/index.js", () => ({
+vi.mock("pi-duroxide", () => ({
   registerWorkflow: vi.fn(),
 }));
 
-import { registerWorkflow } from "../../../src/index.js";
+import { registerWorkflow } from "pi-duroxide";
 import { compileHarnessSpec } from "../../src/compiler/compile.js";
 import type { HarnessSpec } from "../../src/spec/types.js";
 
