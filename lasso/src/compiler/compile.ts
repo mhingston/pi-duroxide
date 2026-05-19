@@ -30,7 +30,7 @@ export interface CompiledHarnessWorkflow {
   spec: HarnessSpec;
   cir: CirWorkflow;
   workflows: RegisteredWorkflow[];
-  register(pi: ExtensionAPI): void;
+  register(pi?: ExtensionAPI): void;
 }
 
 interface ParallelMergePlan {
@@ -75,7 +75,7 @@ export function compileHarnessSpec(spec: HarnessSpec): CompiledHarnessWorkflow {
     spec: compiledSpec,
     cir: compiledCir,
     workflows,
-    register(_pi: ExtensionAPI) {
+    register(_pi?: ExtensionAPI) {
       for (const workflow of workflows) {
         registerWorkflow(workflow.name, workflow.generator, workflow.options);
       }
