@@ -157,4 +157,43 @@ describe("buildPatchValidationHarnessSpec", () => {
     const result = validateHarnessSpec(buildPatchValidationHarnessSpec(bundle));
     expect(result.valid, (result as any).errors?.join(", ")).toBe(true);
   });
+
+  it("baseline reproduce tool guards the checkout so a bad ref fails fast", () => {
+    const bundle: LocalPatchValidationBundle = {
+      repoPath: "/tmp/repo",
+      baselineRef: "HEAD",
+      candidateSource: { kind: "branch", value: "fix/bug-123" },
+      reproduceCommands: ["npm test"],
+      verificationCommands: ["npm test"],
+      reviewInstructions: "Approve.",
+      approvalRequired: false,
+    };
+
+    const spec = buildPatchValidationHarnessSpec(bundle);
+    const baselineNode = spec.graph.nodes.find(n => n.id === "run-baseline");
+    expect(baselineNode).toBeDefined();
+    expect(baselineNode!.kind).toBe("tool");
+    const script = (baselineNode as any).args[1] as string;
+    expect(script).toMatch(/git checkout.*\|\|\s*exit 1/);
+  });
+
+  it("apply candidate tool emits JSON failure payload when baseline checkout fails", () => {
+    const bundle: LocalPatchValidationBundle = {
+      repoPath: "/tmp/repo",
+      baselineRef: "HEAD",
+      candidateSource: { kind: "patchFile", value: "/patches/fix.patch" },
+      reproduceCommands: ["npm test"],
+      verificationCommands: ["npm test"],
+      reviewInstructions: "No approval.",
+      approvalRequired: false,
+    };
+
+    const spec = buildPatchValidationHarnessSpec(bundle);
+    const applyNode = spec.graph.nodes.find(n => n.id === "apply-candidate");
+    expect(applyNode).toBeDefined();
+    expect(applyNode!.kind).toBe("tool");
+    const script = (applyNode as any).args[1] as string;
+    expect(script).toMatch(/baseline checkout failed/);
+    expect(script).toMatch(/"applied":false/);
+  });
 });

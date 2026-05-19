@@ -33,7 +33,7 @@ export const patchValidationNodeIds = {
  */
 export function buildBaselineReproduceTool(bundle: LocalPatchValidationBundle) {
   const lines = [
-    `git checkout ${shellQuote(bundle.baselineRef)} >/dev/null 2>&1`,
+    `git checkout ${shellQuote(bundle.baselineRef)} >/dev/null 2>&1 || exit 1`,
     "reproduced=true",
     ...bundle.reproduceCommands.flatMap(cmd => [
       `if (${cmd}) >/dev/null 2>&1; then`,
@@ -51,7 +51,10 @@ export function buildBaselineReproduceTool(bundle: LocalPatchValidationBundle) {
  */
 export function buildApplyCandidateTool(bundle: LocalPatchValidationBundle) {
   const lines = [
-    `git checkout ${shellQuote(bundle.baselineRef)} >/dev/null 2>&1`,
+    `if ! git checkout ${shellQuote(bundle.baselineRef)} >/dev/null 2>&1; then`,
+    `  printf '%s\\n' ${shellQuote(JSON.stringify({ applied: false, reason: "baseline checkout failed" }))}`,
+    "  exit 0",
+    "fi",
     ...buildCandidateApplicationLines(bundle.candidateSource),
   ];
 
