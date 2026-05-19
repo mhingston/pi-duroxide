@@ -27,9 +27,14 @@ export const patchValidationNodeIds = {
 // Bash tool builders
 // ============================================================================
 
-/** Runs the reproduce commands on the baseline ref.
+/**
+ * Runs the reproduce commands on the baseline ref.
  * Emits { reproduced: true } when they fail (expected baseline signal)
  * and { reproduced: false } when they unexpectedly pass on the baseline.
+ *
+ * Precondition: `bundle.baselineRef` must resolve cleanly in the repo.
+ * A checkout failure is a hard setup/precondition error — the tool exits
+ * non-zero and aborts the workflow rather than routing to a terminal node.
  */
 export function buildBaselineReproduceTool(bundle: LocalPatchValidationBundle) {
   const lines = [

@@ -13,7 +13,12 @@ export type LocalCandidateSource =
 export interface LocalPatchValidationBundle {
   /** Absolute path to the local repository to validate against */
   repoPath: string;
-  /** Git ref to check out as the baseline before applying the candidate */
+  /**
+   * Git ref to check out as the baseline before applying the candidate.
+   * Precondition: this ref must resolve cleanly in the provided `repoPath`
+   * worktree. A checkout failure is treated as an unrecoverable setup error
+   * and is not routed to any terminal node — the workflow aborts immediately.
+   */
   baselineRef: string;
   /** The candidate fix to validate — a branch or a patch file */
   candidateSource: LocalCandidateSource;
