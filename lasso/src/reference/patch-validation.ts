@@ -129,11 +129,15 @@ export function buildPatchValidationHarnessSpec(bundle: LocalPatchValidationBund
           kind: "subworkflow",
           specRef: ids.candidateFailed,
         },
-        {
-          id: ids.rejected,
-          kind: "subworkflow",
-          specRef: ids.rejected,
-        },
+        ...(bundle.approvalRequired
+          ? [
+              {
+                id: ids.rejected,
+                kind: "subworkflow" as const,
+                specRef: ids.rejected,
+              },
+            ]
+          : []),
       ],
       edges: [
         { from: ids.runBaseline, to: ids.gateNotReproduced },

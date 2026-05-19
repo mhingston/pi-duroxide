@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { buildPatchValidationHarnessSpec } from "../../src/reference/patch-validation.js";
+import { validateHarnessSpec } from "../../src/spec/validate.js";
 import type { LocalPatchValidationBundle } from "../../src/reference/types.js";
 
-const TERMINAL_IDS = ["validated-fix", "not-reproduced", "apply-failed", "candidate-failed", "rejected"];
+const ALWAYS_PRESENT_TERMINAL_IDS = ["validated-fix", "not-reproduced", "apply-failed", "candidate-failed"];
+const APPROVAL_ONLY_TERMINAL_IDS = ["rejected"];
 
 describe("buildPatchValidationHarnessSpec", () => {
   it("builds a valid serial spec for a branch candidate source", () => {
@@ -25,11 +27,15 @@ describe("buildPatchValidationHarnessSpec", () => {
     expect(nodeKinds).not.toContain("merge");
 
     const nodeIds = spec.graph.nodes.map(n => n.id);
-    for (const terminal of TERMINAL_IDS) {
+    for (const terminal of ALWAYS_PRESENT_TERMINAL_IDS) {
+      expect(nodeIds).toContain(terminal);
+    }
+    for (const terminal of APPROVAL_ONLY_TERMINAL_IDS) {
       expect(nodeIds).toContain(terminal);
     }
 
-    const terminalNodes = spec.graph.nodes.filter(n => TERMINAL_IDS.includes(n.id));
+    const allTerminalIds = [...ALWAYS_PRESENT_TERMINAL_IDS, ...APPROVAL_ONLY_TERMINAL_IDS];
+    const terminalNodes = spec.graph.nodes.filter(n => allTerminalIds.includes(n.id));
     for (const node of terminalNodes) {
       expect(node.kind).toBe("subworkflow");
     }
@@ -54,8 +60,11 @@ describe("buildPatchValidationHarnessSpec", () => {
     expect(nodeKinds).not.toContain("merge");
 
     const nodeIds = spec.graph.nodes.map(n => n.id);
-    for (const terminal of TERMINAL_IDS) {
+    for (const terminal of ALWAYS_PRESENT_TERMINAL_IDS) {
       expect(nodeIds).toContain(terminal);
+    }
+    for (const terminal of APPROVAL_ONLY_TERMINAL_IDS) {
+      expect(nodeIds).not.toContain(terminal);
     }
   });
 
@@ -117,5 +126,35 @@ describe("buildPatchValidationHarnessSpec", () => {
     for (const [nodeId, count] of targetCounts) {
       expect(count, `node ${nodeId} has ${count} incoming edges (fan-in detected)`).toBe(1);
     }
+  });
+
+  it("produces a spec that passes schema validation when approvalRequired is true", () => {
+    const bundle: LocalPatchValidationBundle = {
+      repoPath: "/tmp/repo",
+      baselineRef: "HEAD",
+      candidateSource: { kind: "branch", value: "fix/bug-123" },
+      reproduceCommands: ["npm test"],
+      verificationCommands: ["npm test"],
+      reviewInstructions: "Approve.",
+      approvalRequired: true,
+    };
+
+    const result = validateHarnessSpec(buildPatchValidationHarnessSpec(bundle));
+    expect(result.valid, (result as any).errors?.join(", ")).toBe(true);
+  });
+
+  it("produces a spec that passes schema validation when approvalRequired is false", () => {
+    const bundle: LocalPatchValidationBundle = {
+      repoPath: "/tmp/repo",
+      baselineRef: "HEAD",
+      candidateSource: { kind: "patchFile", value: "/patches/fix.patch" },
+      reproduceCommands: ["npm test"],
+      verificationCommands: ["npm test"],
+      reviewInstructions: "No approval.",
+      approvalRequired: false,
+    };
+
+    const result = validateHarnessSpec(buildPatchValidationHarnessSpec(bundle));
+    expect(result.valid, (result as any).errors?.join(", ")).toBe(true);
   });
 });
