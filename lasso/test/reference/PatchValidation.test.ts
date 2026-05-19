@@ -196,4 +196,24 @@ describe("buildPatchValidationHarnessSpec", () => {
     expect(script).toMatch(/baseline checkout failed/);
     expect(script).toMatch(/"applied":false/);
   });
+
+  it("summarise node prompt requests only a summary, not an approved field", () => {
+    const bundle: LocalPatchValidationBundle = {
+      repoPath: "/tmp/repo",
+      baselineRef: "HEAD",
+      candidateSource: { kind: "branch", value: "fix/bug-123" },
+      reproduceCommands: ["npm test"],
+      verificationCommands: ["npm test"],
+      reviewInstructions: "Review carefully.",
+      approvalRequired: true,
+    };
+
+    const spec = buildPatchValidationHarnessSpec(bundle);
+    const summariseNode = spec.graph.nodes.find(n => n.id === "summarise");
+    expect(summariseNode).toBeDefined();
+    expect(summariseNode!.kind).toBe("llm");
+    const prompt = (summariseNode as any).prompt as string;
+    expect(prompt).toMatch(/summary/i);
+    expect(prompt).not.toMatch(/\bapproved\b/);
+  });
 });

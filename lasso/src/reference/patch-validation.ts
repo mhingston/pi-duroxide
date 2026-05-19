@@ -157,7 +157,7 @@ export function buildPatchValidationHarnessSpec(bundle: LocalPatchValidationBund
 
 function buildSummaryPrompt(bundle: LocalPatchValidationBundle): string {
   return [
-    "Summarise the patch-validation run and return JSON with a single boolean field `approved` and a short `summary`.",
+    "Summarise the patch-validation run and return JSON with a single string field `summary`.",
     `Repository: ${bundle.repoPath}`,
     `Baseline ref: ${bundle.baselineRef}`,
     `Candidate source: ${JSON.stringify(bundle.candidateSource)}`,
